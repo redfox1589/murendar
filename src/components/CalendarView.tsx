@@ -52,10 +52,19 @@ export function CalendarView({ tasks, onAddTask, onOpenDay, selectedDay }: Props
     <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
       <section className="flex-1 min-w-0 flex flex-col">
         <header className="flex items-end justify-between flex-wrap gap-3 mb-5">
-          <h1 className="font-display text-[34px] sm:text-[44px] leading-none text-[var(--ink)]">
-            {MONTHS[cursor.m].toUpperCase()}{' '}
-            <span className="text-[var(--peri)]">{cursor.y}</span>
-          </h1>
+          <div className="flex items-end gap-3">
+            <h1 className="font-display text-[34px] sm:text-[44px] leading-none text-[var(--ink)]">
+              {MONTHS[cursor.m].toUpperCase()}{' '}
+              <span className="text-[var(--peri)]">{cursor.y}</span>
+            </h1>
+            <img
+              src="./assets/cats/cat-luna.png"
+              alt=""
+              aria-hidden
+              className="w-[76px] h-auto mb-[-6px] select-none pointer-events-none hidden sm:block"
+              draggable={false}
+            />
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => shift(-1)}

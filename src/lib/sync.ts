@@ -63,8 +63,8 @@ export async function pullTasks(): Promise<{ tasks: Task[]; updatedAt: number }>
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
-/* Отправка задач на сервер с debounce, чтобы не слать на каждое нажатие */
-export function schedulePushTasks(tasks: Task[]) {
+/* Отправка задач на сервер с небольшим debounce */
+export function schedulePushTasks(tasks: Task[], delayMs = 400) {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
     try {
@@ -77,7 +77,24 @@ export function schedulePushTasks(tasks: Task[]) {
         setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: data.updatedAt || Date.now() });
       }
     } catch { /* офлайн или нет сессии — задачи остались локально */ }
-  }, 1200);
+  }, delayMs);
+}
+
+/* Полный цикл синхронизации: если на сервере новее — забираем, иначе отправляем локальные.
+   onRemote вызывается, когда локальные задачи заменены серверными. */
+export async function syncNow(localTasks: Task[], onRemote: (tasks: Task[]) => void): Promise<void> {
+  try {
+    const { tasks: remote, updatedAt } = await pullTasks();
+    if (updatedAt > getSyncMeta().lastServerUpdatedAt && remote.length > 0) {
+      onRemote(remote);
+      setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: updatedAt });
+    } else {
+      // сервер пуст или старше — отправляем локальные, но только если они отличаются
+      if (JSON.stringify(localTasks) !== JSON.stringify(remote)) {
+        schedulePushTasks(localTasks, 0);
+      }
+    }
+  } catch { /* офлайн */ }
 }
 
 function b64uToUint8(base64: string): Uint8Array {

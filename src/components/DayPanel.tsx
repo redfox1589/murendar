@@ -37,6 +37,7 @@ export function DayPanel({ tasks, dayKey, onToggle, onEdit }: Props) {
         <div className="mt-5 flex flex-col gap-3">
           {list.length === 0 && (
             <div className="text-[14px] text-[var(--ink-faint)] py-4 text-center">
+              <img src="./assets/cats/cat-cleo.png" alt="" className="w-[90px] mx-auto mb-2 select-none" draggable={false} />
               Задач нет — котик доволен 😽
             </div>
           )}

@@ -14,7 +14,7 @@ import { useReminders, type ReminderEvent } from './hooks/useReminders';
 import {
   dateKey, loadSettings, loadTasks, saveSettings, type Settings, type Task,
 } from './lib/store';
-import { getSyncMeta, pullTasks, registerUser, schedulePushTasks, setSyncMeta } from './lib/sync';
+import { registerUser, syncNow } from './lib/sync';
 import { onAuthChange, supabase } from './lib/auth';
 
 export default function App() {
@@ -61,23 +61,27 @@ function MainApp({ session }: { session: Session }) {
 
   useEffect(() => saveSettings(settings), [settings]);
 
-  // При входе: регистрируемся на сервере и подтягиваем задачи
+  // При входе: регистрируемся на сервере, дальше синхронизируемся каждую минуту,
+  // при возврате во вкладку/приложение и после каждого изменения задач
   useEffect(() => {
+    let cancelled = false;
+    const tick = () => {
+      if (!cancelled) syncNow(loadTasks(), replaceTasks);
+    };
     (async () => {
-      try {
-        await registerUser();
-        const { tasks: remote, updatedAt } = await pullTasks();
-        if (updatedAt > 0 && remote.length > 0) {
-          // На сервере уже есть задачи — они главнее локальных
-          replaceTasks(remote);
-          setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: updatedAt });
-        } else {
-          // Сервер пуст (первый вход) — выгружаем локальные задачи
-          const local = loadTasks();
-          if (local.length > 0) schedulePushTasks(local);
-        }
-      } catch { /* офлайн — работаем с локальными */ }
+      try { await registerUser(); } catch { /* офлайн */ }
+      tick();
     })();
+    const id = setInterval(tick, 60_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.user.id]);
 

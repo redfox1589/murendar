@@ -96,10 +96,10 @@ export function TaskModal({ open, initial, defaultDate, onClose, onSave, onDelet
         aria-label={initial ? 'Редактировать задачу' : 'Новая задача'}
       >
         <img
-          src="./assets/cats/cat-sleep.png"
+          src="./assets/cats/cat-neo.png"
           alt=""
           aria-hidden
-          className="absolute -top-[64px] right-[56px] w-[110px] select-none pointer-events-none hidden sm:block"
+          className="absolute -top-[56px] right-[56px] w-[120px] select-none pointer-events-none hidden sm:block"
           draggable={false}
         />
         <button

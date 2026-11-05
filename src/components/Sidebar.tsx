@@ -58,7 +58,7 @@ export function Sidebar({ view, onNavigate }: { view: View; onNavigate: (v: View
           ))}
         </nav>
 
-        <div className="mt-auto pt-8 flex flex-col items-center gap-3">
+        <div className="mt-auto pt-8 pb-[90px] flex flex-col items-center gap-3">
           <img
             src="./assets/cats/cat-sit.png"
             alt="Котик-помощник"
@@ -69,6 +69,13 @@ export function Sidebar({ view, onNavigate }: { view: View; onNavigate: (v: View
             «Мур-мур! Не забудь<br />про задачки»
           </p>
         </div>
+        <img
+          src="./assets/cats/cat-neo.png"
+          alt=""
+          aria-hidden
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[130px] select-none pointer-events-none"
+          draggable={false}
+        />
       </aside>
 
       {/* Mobile bottom nav */}

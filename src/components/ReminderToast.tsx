@@ -17,11 +17,11 @@ export function ReminderToast({ event, onClose }: Props) {
 
   return (
     <div
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-[min(480px,calc(100vw-24px))] anim-toast"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-[min(480px,calc(100vw-24px))]"
       role="alert"
       aria-live="assertive"
     >
-      <div className="card !bg-[rgba(255,255,255,0.95)] flex items-center gap-4 px-5 py-4 shadow-2xl">
+      <div className="card !bg-[rgba(255,255,255,0.95)] flex items-center gap-4 px-5 py-4 shadow-2xl anim-toast">
         <img
           src="./assets/cats/cat-bell.png"
           alt=""

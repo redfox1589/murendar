@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { playChime } from '../lib/sound';
 import type { Settings } from '../lib/store';
-import { disablePush, enablePush, getSyncMeta } from '../lib/sync';
+import { disablePush, enablePush, getSyncMeta, pullTasks } from '../lib/sync';
 import { signOut } from '../lib/auth';
 
 interface Props {
@@ -36,6 +36,24 @@ export function SettingsView({ settings, onChange, onClearAll, email }: Props) {
   const [pushOn, setPushOn] = useState<boolean>(() => getSyncMeta().pushEnabled);
   const [busy, setBusy] = useState(false);
   const [pushHint, setPushHint] = useState('');
+  const [syncStatus, setSyncStatus] = useState<string>(() => {
+    const t = getSyncMeta().lastServerUpdatedAt;
+    return t ? `Последняя синхронизация: ${new Date(t).toLocaleString('ru-RU')}` : 'Синхронизация ещё не выполнялась';
+  });
+  const [syncChecking, setSyncChecking] = useState(false);
+
+  const checkSync = async () => {
+    setSyncChecking(true);
+    try {
+      const { tasks, updatedAt } = await pullTasks();
+      const when = updatedAt ? new Date(updatedAt).toLocaleString('ru-RU') : 'никогда';
+      setSyncStatus(`На сервере: ${tasks.length} задач, обновлено ${when}`);
+    } catch {
+      setSyncStatus('Не удалось связаться с сервером — проверь интернет');
+    } finally {
+      setSyncChecking(false);
+    }
+  };
 
   const toggleNotifications = async () => {
     if (!settings.notifications) {
@@ -93,13 +111,25 @@ export function SettingsView({ settings, onChange, onClearAll, email }: Props) {
             <div className="text-[13px] text-[var(--ink-faint)] mt-1">
               {email} — задачи синхронизируются между всеми устройствами с этим аккаунтом.
             </div>
+            <div className="text-[12px] text-[var(--ink-faint)] mt-1">
+              {syncStatus}
+            </div>
           </div>
-          <button
-            className="btn-ghost !py-2 !px-4 text-[13px]"
-            onClick={() => signOut()}
-          >
-            Выйти
-          </button>
+          <div className="flex flex-col items-end gap-2 flex-none">
+            <button
+              className="btn-ghost !py-2 !px-4 text-[13px]"
+              disabled={syncChecking}
+              onClick={checkSync}
+            >
+              {syncChecking ? 'Проверяю…' : 'Проверить синхронизацию'}
+            </button>
+            <button
+              className="btn-ghost !py-2 !px-4 text-[13px]"
+              onClick={() => signOut()}
+            >
+              Выйти
+            </button>
+          </div>
         </div>
 
         <div className="h-px bg-[var(--line)]" />
@@ -167,10 +197,19 @@ export function SettingsView({ settings, onChange, onClearAll, email }: Props) {
         </div>
       </div>
 
-      <p className="mt-6 text-[13px] text-[var(--ink-faint)] leading-relaxed">
-        Мурендарь — веб-приложение (PWA-ready): его можно «установить» из браузера на Windows, Linux, macOS,
-        iOS и Android, а позже обернуть в нативную оболочку (Electron / Tauri / Capacitor) без переписывания интерфейса.
-      </p>
+      <div className="mt-6 flex items-end gap-4">
+        <p className="flex-1 text-[13px] text-[var(--ink-faint)] leading-relaxed">
+          Мурендарь — веб-приложение (PWA-ready): его можно «установить» из браузера на Windows, Linux, macOS,
+          iOS и Android, а позже обернуть в нативную оболочку (Electron / Tauri / Capacitor) без переписывания интерфейса.
+        </p>
+        <img
+          src="./assets/cats/cat-peach.png"
+          alt=""
+          aria-hidden
+          className="w-[100px] h-auto flex-none select-none pointer-events-none"
+          draggable={false}
+        />
+      </div>
     </section>
   );
 }

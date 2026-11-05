@@ -59,8 +59,22 @@ export function AuthView({ recoveryMode, onRecoveryDone }: Props) {
     mode === 'forgot' ? 'СБРОС ПАРОЛЯ' : 'НОВЫЙ ПАРОЛЬ';
 
   return (
-    <div className="min-h-100dvh flex items-center justify-center px-4">
-      <section className="w-full max-w-[420px]">
+    <div className="min-h-100dvh flex items-center justify-center px-4 relative">
+      <img
+        src="./assets/cats/cat-milo.png"
+        alt=""
+        aria-hidden
+        className="hidden lg:block absolute left-[max(24px,calc(50%-460px))] bottom-8 w-[170px] select-none pointer-events-none"
+        draggable={false}
+      />
+      <img
+        src="./assets/cats/cat-boo.png"
+        alt=""
+        aria-hidden
+        className="hidden lg:block absolute right-[max(24px,calc(50%-460px))] bottom-8 w-[150px] select-none pointer-events-none"
+        draggable={false}
+      />
+      <section className="w-full max-w-[420px] relative">
         <div className="text-center mb-6">
           <img src="./assets/cats/cat-sit.png" alt="Котик" className="w-[110px] mx-auto mb-3 select-none" draggable={false} />
           <h1 className="font-display text-[34px] leading-none text-[var(--ink)]">МУРЕНДАРЬ</h1>
