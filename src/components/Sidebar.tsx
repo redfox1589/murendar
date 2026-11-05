@@ -60,7 +60,7 @@ export function Sidebar({ view, onNavigate }: { view: View; onNavigate: (v: View
 
         <div className="mt-auto pt-8 flex flex-col items-center gap-3">
           <img
-            src="/assets/cats/cat-sit.png"
+            src="./assets/cats/cat-sit.png"
             alt="Котик-помощник"
             className="w-[150px] h-auto select-none pointer-events-none"
             draggable={false}

@@ -92,7 +92,7 @@ export function DayPanel({ tasks, dayKey, onToggle, onEdit }: Props) {
           </div>
         </div>
         <img
-          src="/assets/cats/cat-sleep.png"
+          src="./assets/cats/cat-sleep.png"
           alt="Спящий котик"
           className="w-[86px] h-auto ml-auto select-none pointer-events-none"
           draggable={false}

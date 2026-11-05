@@ -54,7 +54,7 @@ export function TodayView({ tasks, onToggle, onEdit, onAdd, goCalendar }: Props)
         </h2>
         {upcoming.length === 0 && (
           <div className="card p-10 text-center">
-            <img src="/assets/cats/cat-sleep.png" alt="" className="w-[110px] mx-auto mb-3 select-none" draggable={false} />
+            <img src="./assets/cats/cat-sleep.png" alt="" className="w-[110px] mx-auto mb-3 select-none" draggable={false} />
             <div className="text-[var(--ink-faint)]">Впереди свободная неделя — котик мурлычет.</div>
             <button className="btn-ghost mt-4" onClick={goCalendar}>Открыть календарь</button>
           </div>

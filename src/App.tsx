@@ -12,9 +12,10 @@ import { useReminders, type ReminderEvent } from './hooks/useReminders';
 import {
   dateKey, loadSettings, saveSettings, type Settings, type Task,
 } from './lib/store';
+import { getSyncCode, getSyncMeta, pullTasks, setSyncMeta } from './lib/sync';
 
 export default function App() {
-  const { tasks, addTask, updateTask, deleteTask, toggleDone } = useTasks();
+  const { tasks, addTask, updateTask, deleteTask, toggleDone, replaceTasks } = useTasks();
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [view, setView] = useState<View>('calendar');
   const [selectedDay, setSelectedDay] = useState(() => dateKey(new Date()));
@@ -24,6 +25,20 @@ export default function App() {
   const [reminder, setReminder] = useState<ReminderEvent | null>(null);
 
   useEffect(() => saveSettings(settings), [settings]);
+
+  // При запуске подтягиваем задачи с сервера, если включена синхронизация
+  useEffect(() => {
+    if (!getSyncCode()) return;
+    pullTasks()
+      .then(({ tasks: remote, updatedAt }) => {
+        if (updatedAt > getSyncMeta().lastServerUpdatedAt) {
+          replaceTasks(remote);
+          setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: updatedAt });
+        }
+      })
+      .catch(() => { /* офлайн — работаем с локальными */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useReminders(tasks, settings, useCallback(e => setReminder(e), []));
 
@@ -92,7 +107,13 @@ export default function App() {
         )}
 
         {view === 'settings' && (
-          <SettingsView settings={settings} onChange={setSettings} onClearAll={clearAll} />
+          <SettingsView
+            settings={settings}
+            onChange={setSettings}
+            onClearAll={clearAll}
+            tasks={tasks}
+            onReplaceTasks={replaceTasks}
+          />
         )}
       </main>
 

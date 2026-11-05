@@ -47,7 +47,7 @@ export function useReminders(
               try {
                 new Notification('Мур! Напоминание 🐾', {
                   body: `${label} — ${task.title}`,
-                  icon: '/assets/cats/cat-sit.png',
+                  icon: './assets/cats/cat-sit.png',
                   tag: key,
                 });
               } catch { /* some browsers require SW; in-app toast still shows */ }

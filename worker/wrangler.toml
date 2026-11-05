@@ -1,0 +1,14 @@
+name = "murendar-push"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "MURENDAR_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+VAPID_PUBLIC = "BFaRFw0A7ycW_QXoZv24EL8lcXr0zDBUg8JkoZ5LtNWbvRnxtWaqJNTpLOnk8vca-DEJc9yXVIjSwpMVP-6mAb4"
+VAPID_SUBJECT = "mailto:murendar@redfox1589.github.io"

@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadTasks, saveTasks, type Task } from '../lib/store';
+import { schedulePushTasks } from '../lib/sync';
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
 
   useEffect(() => {
     saveTasks(tasks);
+    schedulePushTasks(tasks);
   }, [tasks]);
+
+  const replaceTasks = useCallback((next: Task[]) => {
+    setTasks(next);
+  }, []);
 
   const addTask = useCallback((t: Omit<Task, 'id' | 'createdAt' | 'done' | 'doneDates'>) => {
     setTasks(prev => [...prev, { ...t, id: crypto.randomUUID(), createdAt: Date.now(), done: false, doneDates: [] }]);
@@ -31,5 +37,5 @@ export function useTasks() {
     );
   }, []);
 
-  return { tasks, addTask, updateTask, deleteTask, toggleDone };
+  return { tasks, addTask, updateTask, deleteTask, toggleDone, replaceTasks };
 }

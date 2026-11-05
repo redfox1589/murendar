@@ -2,12 +2,13 @@
   "name": "Мурендарь",
   "short_name": "Мурендарь",
   "description": "Календарь-напоминалка с котиками",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f3f2ec",
   "theme_color": "#f3f2ec",
   "lang": "ru",
   "icons": [
-    { "src": "/assets/cats/cat-sit.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    { "src": "./assets/cats/cat-sit.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
   ]
 }
