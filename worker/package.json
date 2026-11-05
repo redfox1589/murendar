@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "supabase": "^3.0.0",
     "wrangler": "^4.158.0"
   }
 }

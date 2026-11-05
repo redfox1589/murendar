@@ -3,7 +3,7 @@
 
 import type { Task } from './store';
 
-export const WORKER_URL = 'https://murendar-push.PLACEHOLDER.workers.dev';
+export const WORKER_URL = 'https://hvesduszevnjtygnrqhh.supabase.co/functions/v1/api';
 export const VAPID_PUBLIC = 'BFaRFw0A7ycW_QXoZv24EL8lcXr0zDBUg8JkoZ5LtNWbvRnxtWaqJNTpLOnk8vca-DEJc9yXVIjSwpMVP-6mAb4';
 
 const CODE_KEY = 'murendar.sync.code.v1';

@@ -7,7 +7,7 @@ crons = ["* * * * *"]
 
 [[kv_namespaces]]
 binding = "MURENDAR_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "f531b2595c2047c99eb12d6146e0236b"
 
 [vars]
 VAPID_PUBLIC = "BFaRFw0A7ycW_QXoZv24EL8lcXr0zDBUg8JkoZ5LtNWbvRnxtWaqJNTpLOnk8vca-DEJc9yXVIjSwpMVP-6mAb4"
