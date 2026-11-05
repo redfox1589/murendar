@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { Sidebar, type View } from './components/Sidebar';
 import { CalendarView } from './components/CalendarView';
 import { TodayView } from './components/TodayView';
@@ -7,14 +8,48 @@ import { SettingsView } from './components/SettingsView';
 import { TaskModal, type TaskDraft } from './components/TaskModal';
 import { DayPanel } from './components/DayPanel';
 import { ReminderToast } from './components/ReminderToast';
+import { AuthView } from './components/AuthView';
 import { useTasks } from './hooks/useTasks';
 import { useReminders, type ReminderEvent } from './hooks/useReminders';
 import {
-  dateKey, loadSettings, saveSettings, type Settings, type Task,
+  dateKey, loadSettings, loadTasks, saveSettings, type Settings, type Task,
 } from './lib/store';
-import { getSyncCode, getSyncMeta, pullTasks, setSyncMeta } from './lib/sync';
+import { getSyncMeta, pullTasks, registerUser, schedulePushTasks, setSyncMeta } from './lib/sync';
+import { onAuthChange, supabase } from './lib/auth';
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data: sub } = onAuthChange((s, event) => {
+      setSession(s);
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  if (!authReady) {
+    return (
+      <div className="min-h-100dvh flex items-center justify-center">
+        <img src="./assets/cats/cat-sleep.png" alt="" className="w-[90px] opacity-70 animate-pulse select-none" draggable={false} />
+      </div>
+    );
+  }
+
+  if (!session || recoveryMode) {
+    return <AuthView recoveryMode={recoveryMode} onRecoveryDone={() => setRecoveryMode(false)} />;
+  }
+
+  return <MainApp session={session} />;
+}
+
+function MainApp({ session }: { session: Session }) {
   const { tasks, addTask, updateTask, deleteTask, toggleDone, replaceTasks } = useTasks();
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [view, setView] = useState<View>('calendar');
@@ -26,19 +61,25 @@ export default function App() {
 
   useEffect(() => saveSettings(settings), [settings]);
 
-  // При запуске подтягиваем задачи с сервера, если включена синхронизация
+  // При входе: регистрируемся на сервере и подтягиваем задачи
   useEffect(() => {
-    if (!getSyncCode()) return;
-    pullTasks()
-      .then(({ tasks: remote, updatedAt }) => {
-        if (updatedAt > getSyncMeta().lastServerUpdatedAt) {
+    (async () => {
+      try {
+        await registerUser();
+        const { tasks: remote, updatedAt } = await pullTasks();
+        if (updatedAt > 0 && remote.length > 0) {
+          // На сервере уже есть задачи — они главнее локальных
           replaceTasks(remote);
           setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: updatedAt });
+        } else {
+          // Сервер пуст (первый вход) — выгружаем локальные задачи
+          const local = loadTasks();
+          if (local.length > 0) schedulePushTasks(local);
         }
-      })
-      .catch(() => { /* офлайн — работаем с локальными */ });
+      } catch { /* офлайн — работаем с локальными */ }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session.user.id]);
 
   useReminders(tasks, settings, useCallback(e => setReminder(e), []));
 
@@ -111,8 +152,7 @@ export default function App() {
             settings={settings}
             onChange={setSettings}
             onClearAll={clearAll}
-            tasks={tasks}
-            onReplaceTasks={replaceTasks}
+            email={session.user.email || ''}
           />
         )}
       </main>

@@ -79,8 +79,9 @@ export function TasksView({ tasks, onToggle, onEdit, onDelete, onAdd }: Props) {
       </div>
 
       {groups.length === 0 && (
-        <div className="card p-10 text-center text-[var(--ink-faint)]">
-          Пусто. Котик уже разлёгся — добавьте задачу!
+        <div className="card p-10 text-center">
+          <img src="./assets/cats/cat-loaf.png" alt="" className="w-[130px] mx-auto mb-3 select-none" draggable={false} />
+          <div className="text-[var(--ink-faint)]">Пусто. Котик уже разлёгся — добавьте задачу!</div>
         </div>
       )}
 

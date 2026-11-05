@@ -9,8 +9,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Мур! Напоминание 🐾', {
       body: data.body || '',
-      icon: './assets/cats/cat-sit.png',
-      badge: './assets/cats/cat-sit.png',
+      icon: './assets/cats/cat-bell.png',
+      badge: './assets/cats/cat-bell.png',
       tag: data.tag || 'murendar',
       data: { url: data.url || './' },
     })

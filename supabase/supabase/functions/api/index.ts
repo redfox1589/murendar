@@ -1,13 +1,12 @@
-/* API Мурендаря: регистрация кода, чтение/запись задач, управление push-подписками.
-   Доступ по коду синхронизации: ключ записи = sha256-hex(code). */
+/* API Мурендаря: задачи и push-подписки. Доступ только по JWT пользователя Supabase Auth.
+   Ключ записи в таблице = auth user id. */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { te, b64u } from '../_shared/push.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type,X-Sync-Code,Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,apikey',
 };
 
 function json(obj: unknown, status = 200): Response {
@@ -17,45 +16,37 @@ function json(obj: unknown, status = 200): Response {
   });
 }
 
-const CODE_RE = /^[A-Za-z0-9-]{8,64}$/;
-
-async function userId(code: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', te.encode(code) as BufferSource);
-  const bytes = new Uint8Array(digest);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
   try {
     const url = new URL(request.url);
-    // путь вида /api/health или /health (в зависимости от того, как смонтирована функция)
     const path = url.pathname.replace(/^\/api/, '') || '/';
 
     if (path === '/health') return json({ ok: true });
 
-    const code = request.headers.get('X-Sync-Code') || '';
-    if (!CODE_RE.test(code)) return json({ error: 'bad code' }, 401);
-    const id = await userId(code);
+    const jwt = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    if (!jwt) return json({ error: 'no token' }, 401);
 
-    const db = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const db = createClient(supabaseUrl, serviceKey);
+
+    const { data: { user }, error: authErr } = await db.auth.getUser(jwt);
+    if (authErr || !user) return json({ error: 'invalid token' }, 401);
+    const id = user.id;
 
     if (path === '/register' && request.method === 'POST') {
       const { data: existing } = await db.from('murendar_users').select('*').eq('id', id).maybeSingle();
       if (!existing) {
-        const rec = { id, tasks: [], subs: [], tz: null, updated_at: 0, fired: {} };
-        await db.from('murendar_users').insert(rec);
+        await db.from('murendar_users').insert({ id, tasks: [], subs: [], tz: null, updated_at: 0, fired: {} });
         return json({ created: true, state: { tasks: [], updatedAt: 0 } });
       }
       return json({ created: false, state: { tasks: existing.tasks, updatedAt: existing.updated_at } });
     }
 
     const { data: rec } = await db.from('murendar_users').select('*').eq('id', id).maybeSingle();
-    if (!rec) return json({ error: 'unknown code' }, 404);
+    if (!rec) return json({ error: 'not registered' }, 404);
 
     if (path === '/state' && request.method === 'GET') {
       return json({ tasks: rec.tasks, updatedAt: rec.updated_at, tz: rec.tz });

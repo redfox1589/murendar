@@ -92,8 +92,14 @@ export function DayPanel({ tasks, dayKey, onToggle, onEdit }: Props) {
           </div>
         </div>
         <img
-          src="./assets/cats/cat-sleep.png"
-          alt="Спящий котик"
+          src={
+            list.length === 0
+              ? './assets/cats/cat-play.png'
+              : doneCount === list.length
+                ? './assets/cats/cat-happy.png'
+                : './assets/cats/cat-wait.png'
+          }
+          alt="Котик"
           className="w-[86px] h-auto ml-auto select-none pointer-events-none"
           draggable={false}
         />

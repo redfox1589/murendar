@@ -1,30 +1,16 @@
-/* Синхронизация задач и push-подписка через Cloudflare Worker.
-   Код синхронизации — единственный «ключ»: кто его знает, тот владеет данными. */
+/* Синхронизация задач и push-подписка через Supabase edge-функции.
+   Доступ — по JWT текущего пользователя (см. auth.ts). */
 
 import type { Task } from './store';
+import { API_URL, getAccessToken } from './auth';
 
-export const WORKER_URL = 'https://hvesduszevnjtygnrqhh.supabase.co/functions/v1/api';
 export const VAPID_PUBLIC = 'BFaRFw0A7ycW_QXoZv24EL8lcXr0zDBUg8JkoZ5LtNWbvRnxtWaqJNTpLOnk8vca-DEJc9yXVIjSwpMVP-6mAb4';
 
-const CODE_KEY = 'murendar.sync.code.v1';
 const META_KEY = 'murendar.sync.meta.v1';
 
 export interface SyncMeta {
   lastServerUpdatedAt: number;
   pushEnabled: boolean;
-}
-
-export function getSyncCode(): string | null {
-  try {
-    return localStorage.getItem(CODE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setSyncCode(code: string | null) {
-  if (code) localStorage.setItem(CODE_KEY, code);
-  else localStorage.removeItem(CODE_KEY);
 }
 
 export function getSyncMeta(): SyncMeta {
@@ -39,14 +25,6 @@ export function setSyncMeta(meta: SyncMeta) {
   localStorage.setItem(META_KEY, JSON.stringify(meta));
 }
 
-/* Код вида mur-XXXX-XXXX-XXXX, без похожих символов — удобно перепечатать на другом устройстве */
-export function generateSyncCode(): string {
-  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
-  return `mur-${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8, 12)}`;
-}
-
 export function currentTz(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow';
@@ -56,28 +34,28 @@ export function currentTz(): string {
 }
 
 async function api(path: string, options: RequestInit = {}): Promise<Response> {
-  const code = getSyncCode();
-  if (!code) throw new Error('no sync code');
-  return fetch(WORKER_URL + path, {
+  const token = await getAccessToken();
+  if (!token) throw new Error('not authenticated');
+  return fetch(API_URL + path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-Sync-Code': code,
+      'Authorization': `Bearer ${token}`,
       ...(options.headers || {}),
     },
   });
 }
 
-/* Регистрация кода на сервере (создаёт запись, если её ещё нет) */
-export async function registerCode(): Promise<{ tasks: Task[]; updatedAt: number }> {
-  const res = await api('/api/register', { method: 'POST', body: '{}' });
+/* Создаёт запись пользователя на сервере, если её ещё нет */
+export async function registerUser(): Promise<{ tasks: Task[]; updatedAt: number }> {
+  const res = await api('/register', { method: 'POST', body: '{}' });
   if (!res.ok) throw new Error('register failed: ' + res.status);
   const data = await res.json();
   return { tasks: data.state.tasks || [], updatedAt: data.state.updatedAt || 0 };
 }
 
 export async function pullTasks(): Promise<{ tasks: Task[]; updatedAt: number }> {
-  const res = await api('/api/state');
+  const res = await api('/state');
   if (!res.ok) throw new Error('pull failed: ' + res.status);
   const data = await res.json();
   return { tasks: data.tasks || [], updatedAt: data.updatedAt || 0 };
@@ -87,11 +65,10 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
 /* Отправка задач на сервер с debounce, чтобы не слать на каждое нажатие */
 export function schedulePushTasks(tasks: Task[]) {
-  if (!getSyncCode()) return;
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
     try {
-      const res = await api('/api/state', {
+      const res = await api('/state', {
         method: 'PUT',
         body: JSON.stringify({ tasks, tz: currentTz() }),
       });
@@ -99,7 +76,7 @@ export function schedulePushTasks(tasks: Task[]) {
         const data = await res.json();
         setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: data.updatedAt || Date.now() });
       }
-    } catch { /* офлайн — задачи остались локально, уйдут при следующем изменении */ }
+    } catch { /* офлайн или нет сессии — задачи остались локально */ }
   }, 1200);
 }
 
@@ -123,7 +100,7 @@ export async function enablePush(): Promise<boolean> {
       applicationServerKey: b64uToUint8(VAPID_PUBLIC) as BufferSource,
     });
   }
-  const res = await api('/api/subscribe', {
+  const res = await api('/subscribe', {
     method: 'POST',
     body: JSON.stringify({ subscription: sub.toJSON(), tz: currentTz() }),
   });
@@ -137,7 +114,7 @@ export async function disablePush(): Promise<void> {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await api('/api/unsubscribe', {
+        await api('/unsubscribe', {
           method: 'POST',
           body: JSON.stringify({ endpoint: sub.endpoint }),
         }).catch(() => {});
