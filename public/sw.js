@@ -12,11 +12,17 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     // Сначала маячок: фиксируем на сервере, что пуш дошёл до service worker
     fetch(BEACON + '?tag=' + encodeURIComponent(tag)).catch(() => {})
-      .then(() => self.registration.showNotification(data.title || 'Мур! Напоминание 🐾', {
-        body: data.body || '',
-        tag: tag,
-        data: { url: data.url || './' },
-      }))
+      .then(() =>
+        self.registration.showNotification(data.title || 'Мур! Напоминание 🐾', {
+          body: data.body || '',
+          tag: tag,
+          data: { url: data.url || './' },
+        })
+          .then(() => fetch(BEACON + '?tag=' + encodeURIComponent(tag + ':shown')).catch(() => {}))
+          .catch((err) =>
+            fetch(BEACON + '?tag=' + encodeURIComponent(tag + ':error:' + String(err && err.message || err).slice(0, 80))).catch(() => {})
+          )
+      )
   );
 });
 
