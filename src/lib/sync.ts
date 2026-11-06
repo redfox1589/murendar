@@ -62,9 +62,20 @@ export async function pullTasks(): Promise<{ tasks: Task[]; updatedAt: number }>
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let syncReady = false;          // true после первой сверки с сервером
+let skipPushJson: string | null = null; // задачи, пришедшие с сервера — их не пушим обратно
+
+export function markSyncReady() {
+  syncReady = true;
+}
 
 /* Отправка задач на сервер с небольшим debounce */
 export function schedulePushTasks(tasks: Task[], delayMs = 400) {
+  if (!syncReady) return; // до первой сверки с сервером ничего не отправляем
+  if (skipPushJson !== null && JSON.stringify(tasks) === skipPushJson) {
+    skipPushJson = null;
+    return; // это эхо серверных задач, обратно не шлём
+  }
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(async () => {
     try {
@@ -85,7 +96,9 @@ export function schedulePushTasks(tasks: Task[], delayMs = 400) {
 export async function syncNow(localTasks: Task[], onRemote: (tasks: Task[]) => void): Promise<void> {
   try {
     const { tasks: remote, updatedAt } = await pullTasks();
+    syncReady = true;
     if (updatedAt > getSyncMeta().lastServerUpdatedAt && remote.length > 0) {
+      skipPushJson = JSON.stringify(remote); // не пушим это обратно
       onRemote(remote);
       setSyncMeta({ ...getSyncMeta(), lastServerUpdatedAt: updatedAt });
     } else {
@@ -94,7 +107,9 @@ export async function syncNow(localTasks: Task[], onRemote: (tasks: Task[]) => v
         schedulePushTasks(localTasks, 0);
       }
     }
-  } catch { /* офлайн */ }
+  } catch {
+    syncReady = true; // офлайн — изменения всё равно будут пытаться уйти
+  }
 }
 
 function b64uToUint8(base64: string): Uint8Array {
