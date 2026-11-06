@@ -25,11 +25,20 @@ Deno.serve(async (request: Request) => {
 
     if (path === '/health') return json({ ok: true });
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Открытый маячок для диагностики доставки пушей (без авторизации)
+    if (path === '/beacon') {
+      const tag = url.searchParams.get('tag') || 'unknown';
+      const beaconDb = createClient(supabaseUrl, serviceKey);
+      await beaconDb.from('push_beacons').insert({ tag });
+      return json({ ok: true, tag });
+    }
+
     const jwt = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     if (!jwt) return json({ error: 'no token' }, 401);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const db = createClient(supabaseUrl, serviceKey);
 
     const { data: { user }, error: authErr } = await db.auth.getUser(jwt);

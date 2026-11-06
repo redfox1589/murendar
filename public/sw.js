@@ -1,4 +1,6 @@
 /* Мурендарь service worker: push-уведомления */
+const BEACON = 'https://hvesduszevnjtygnrqhh.supabase.co/functions/v1/api/beacon';
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -6,14 +8,15 @@ self.addEventListener('push', (event) => {
   } catch (e) {
     data = { body: event.data ? event.data.text() : '' };
   }
+  const tag = data.tag || 'murendar';
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Мур! Напоминание 🐾', {
-      body: data.body || '',
-      icon: './assets/cats/cat-bell.png',
-      badge: './assets/cats/cat-bell.png',
-      tag: data.tag || 'murendar',
-      data: { url: data.url || './' },
-    })
+    // Сначала маячок: фиксируем на сервере, что пуш дошёл до service worker
+    fetch(BEACON + '?tag=' + encodeURIComponent(tag)).catch(() => {})
+      .then(() => self.registration.showNotification(data.title || 'Мур! Напоминание 🐾', {
+        body: data.body || '',
+        tag: tag,
+        data: { url: data.url || './' },
+      }))
   );
 });
 
